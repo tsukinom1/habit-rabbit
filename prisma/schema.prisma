@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String?
+  role      Role     @default(USER)
+  profile   Profile? // Связь один к одному с профилем
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Profile {
+  id     String @id @default(cuid())
+  userId String @unique // Уникальный, чтобы один пользователь = один профиль
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Основная информация
+  firstName String    @map("first_name")
+  lastName  String    @map("last_name")
+  avatar    String?   @default("/icons/default-avatar.png")
+  bio       String // Для длинного текста
+  gender    String?
+  birthDate DateTime? @map("birth_date")
+  phone     String?
+
+  // Местоположение
+  country String?
+  city    String?
+  address String?
+
+  // Настройки профиля
+  isPublic Boolean @default(true) @map("is_public") // Публичный/приватный профиль
+  timezone String? @default("UTC") // Часовой пояс пользователя
+  language String? @default("ru") // Предпочитаемый язык
+
+  // Статистика (будет вычисляться автоматически)
+  totalHabits     Int @default(0) @map("total_habits")
+  completedHabits Int @default(0) @map("completed_habits")
+  currentStreak   Int @default(0) @map("current_streak")
+  longestStreak   Int @default(0) @map("longest_streak")
+
+  // Связи
+  habits  Habit[]
+  socials Social[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+model Social {
+  id        String  @id @default(cuid())
+  profileId String  @map("profile_id")
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  platform SocialType // Тип социальной сети
+  url      String // Ссылка
+  username String? // Username (опционально)
+  isPublic Boolean    @default(true) @map("is_public")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("socials")
+}
+
+model Habit {
+  id        String  @id @default(cuid())
+  profileId String  @map("profile_id")
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  // Основная информация о привычке
+  title       String
+  description String?
+  icon        String? @default("🎯") // Эмодзи иконка
+  color       String? @default("#3B82F6") // Цвет для UI
+
+  // Настройки привычки
+  frequency   Frequency @default(DAILY) // Частота выполнения
+  targetValue Int?      @map("target_value") // Целевое значение (например, 10 отжиманий)
+  unit        String? // Единица измерения (раз, минут, км и т.д.)
+
+  // Временные настройки
+  reminderTime String?   @map("reminder_time") // Время напоминания в формате HH:MM
+  startDate    DateTime  @default(now()) @map("start_date")
+  endDate      DateTime? @map("end_date") // Опционально, для временных привычек
+
+  // Статус
+  isActive   Boolean @default(true) @map("is_active")
+  isArchived Boolean @default(false) @map("is_archived")
+
+  // Статистика
+  currentStreak Int @default(0) @map("current_streak")
+  longestStreak Int @default(0) @map("longest_streak")
+  totalEntries  Int @default(0) @map("total_entries")
+
+  // Связи
+  entries HabitEntry[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("habits")
+}
+
+model HabitEntry {
+  id      String @id @default(cuid())
+  habitId String @map("habit_id")
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  // Данные о выполнении
+  date  DateTime // Дата выполнения
+  value Int? // Значение (если привычка с количественным показателем)
+  note  String? // Заметка пользователя
+  mood  Mood? // Настроение при выполнении
+
+  // Метаданные
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([habitId, date]) // Одна запись на привычку в день
+  @@map("habit_entries")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SocialType {
+  TELEGRAM
+  VK
+  INSTAGRAM
+  TWITTER
+  YOUTUBE
+  LINKEDIN
+  GITHUB
+  WEBSITE
+  OTHER
+}
+
+enum Frequency {
+  DAILY // Ежедневно
+  WEEKLY // Еженедельно  
+  MONTHLY // Ежемесячно
+  CUSTOM // Кастомная частота
+}
+
+enum Mood {
+  TERRIBLE // 😞
+  BAD // 😔  
+  NEUTRAL // 😐
+  GOOD // 🙂
+  EXCELLENT // 😃
+}

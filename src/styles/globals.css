@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Кастомные анимации для Timeline секции */
+
+
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  width: 85%;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .container {
+    width: 95%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    width: 90%;
+  }
+}
