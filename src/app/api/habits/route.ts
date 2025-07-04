@@ -31,7 +31,11 @@ export async function GET() {
             orderBy: { createdAt: 'desc' },
             include: {
                 entries: {
-                    take: 1,
+                    where: {
+                        date: {
+                            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Последние 30 дней
+                        }
+                    },
                     orderBy: { date: 'desc' }
                 }
             }
@@ -58,8 +62,8 @@ export async function POST(request: Request) {
         // ✅ Проверка лимитов
         const MAX_HABITS = 50
         if (profile.totalHabits >= MAX_HABITS) {
-            return NextResponse.json({ 
-                error: `Максимум ${MAX_HABITS} привычек на пользователя` 
+            return NextResponse.json({
+                error: `Максимум ${MAX_HABITS} привычек на пользователя`
             }, { status: 400 })
         }
 
@@ -110,17 +114,17 @@ export async function POST(request: Request) {
     } catch (error: any) {
         // ✅ Детальное логирование
         console.error('Ошибка создания привычки:', error)
-        
+
         // Проверяем тип ошибки Prisma
         if (error?.code === 'P2002') {
-            return NextResponse.json({ 
-                error: "Привычка с таким названием уже существует" 
+            return NextResponse.json({
+                error: "Привычка с таким названием уже существует"
             }, { status: 409 })
         }
-        
+
         if (error?.code === 'P2025') {
-            return NextResponse.json({ 
-                error: "Связанная запись не найдена" 
+            return NextResponse.json({
+                error: "Связанная запись не найдена"
             }, { status: 404 })
         }
 

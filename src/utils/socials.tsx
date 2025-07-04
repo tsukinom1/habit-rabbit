@@ -1,4 +1,4 @@
-import { FaTelegram, FaVk, FaInstagram, FaGithub, FaLinkedin, FaGlobe, FaQuestion } from 'react-icons/fa'
+import { FaTelegram, FaVk, FaInstagram, FaGithub, FaLinkedin, FaGlobe, FaQuestion, FaTiktok } from 'react-icons/fa'
 
 
 export const socialsIcons = (platform: string) => {
@@ -8,6 +8,7 @@ export const socialsIcons = (platform: string) => {
     if (platform === 'GITHUB') return <FaGithub size={30} />
     if (platform === 'LINKEDIN') return <FaLinkedin size={30} />
     if (platform === 'WEBSITE') return <FaGlobe size={30} />
+    if (platform === 'TIKTOK') return <FaTiktok size={30} />
     if (platform === 'OTHER') return <FaQuestion size={30} />
 }
 
@@ -17,6 +18,7 @@ export const socialPlatforms = [
     { value: 'INSTAGRAM', label: 'Instagram', urlTemplate: 'https://instagram.com/{username}' },
     { value: 'GITHUB', label: 'GitHub', urlTemplate: 'https://github.com/{username}' },
     { value: 'LINKEDIN', label: 'LinkedIn', urlTemplate: 'https://linkedin.com/in/{username}' },
+    { value: 'TIKTOK', label: 'TikTok', urlTemplate: 'https://www.tiktok.com/@{username}?_t=ZN-8xcB4q2OrWY' },
     { value: 'WEBSITE', label: 'Веб-сайт', urlTemplate: '' }, // ручной ввод
     { value: 'OTHER', label: 'Другое', urlTemplate: '' } // ручной ввод
 ]

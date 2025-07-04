@@ -26,11 +26,14 @@ export async function GET() {
             }
         })
 
-        // Если профиль не существует, создаем его
+        // Если профиль не существует, создаем его с дефолтными значениями
         if (!profile) {
             profile = await prisma.profile.create({
                 data: {
                     userId: session.user.id,
+                    firstName: "Новый",
+                    lastName: "Пользователь", 
+                    bio: "Расскажите о себе..."
                 },
                 include: {
                     socials: true,
@@ -126,7 +129,13 @@ export async function PUT(request: Request) {
         const profile = await prisma.profile.upsert({
             where: { userId: session.user.id },
             update: processedData,
-            create: { ...processedData, userId: session.user.id }
+            create: { 
+                ...processedData, 
+                userId: session.user.id,
+                firstName: processedData.firstName || "Новый",
+                lastName: processedData.lastName || "Пользователь", 
+                bio: processedData.bio || "Расскажите о себе..."
+            }
         })
 
         // Обрабатываем соцсети отдельно

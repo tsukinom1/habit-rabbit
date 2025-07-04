@@ -8,22 +8,133 @@ import { THabit } from '@/types/habit'
 import { useHabit } from '@/hooks/useHabit'
 import MyTextarea from '../ui/MyTextarea'
 import { FaTimes } from 'react-icons/fa'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default function HabitsForm({ setIsEdit }: { setIsEdit: (isEdit: boolean) => void }) {
-    const { createHabit, habits } = useHabit()
-    const { register, handleSubmit, reset, watch } = useForm()
+interface HabitsFormProps {
+    editingHabit?: THabit | null
+    mode?: 'create' | 'edit'
+}
 
-    const onSubmit = (data: Partial<THabit>) => {
-        createHabit(data)
-        reset()
+export default function HabitsForm({ editingHabit, mode = 'create' }: HabitsFormProps) {
+    const router = useRouter()
+    const { createHabit, updateHabit } = useHabit()
+    const { register, handleSubmit, reset, setValue, watch } = useForm()
+
+    // Маппинг иконок
+    const iconMapping = {
+        '🏋️': 'fitness',
+        '💧': 'nutrition',
+        '🍎': 'fruit',
+        '🥗': 'healthy-food',
+        '💊': 'vitamins',
+        '✅': 'task',
+        '🎯': 'focus',
+        '⏰': 'time',
+        '📋': 'plan',
+        '📚': 'book',
+        '📖': 'study',
+        '🗣️': 'language',
+        '✍️': 'write',
+        '😴': 'sleep',
+        '🧘‍♀️': 'meditation',
+        '🌳': 'nature',
+        '😊': 'smile',
+        '🎨': 'art',
+        '🎵': 'music',
+        '📸': 'photo',
+        '👨‍👩‍👧‍👦': 'family',
+        '👥': 'friends',
+        '📞': 'call',
+        '💰': 'save',
+        '📊': 'budget',
+        '🧹': 'clean',
+        '🍳': 'cook'
+    }
+
+    const reverseIconMapping = Object.fromEntries(
+        Object.entries(iconMapping).map(([emoji, value]) => [value, emoji])
+    )
+
+    // Маппинг цветов
+    const colorMapping = {
+        '#22c55e': 'green',
+        '#3b82f6': 'blue',
+        '#eab308': 'yellow',
+        '#a855f7': 'purple',
+        '#f97316': 'orange',
+        '#ec4899': 'pink'
+    }
+
+    const reverseColorMapping = {
+        'green': '#22c55e',
+        'blue': '#3b82f6',
+        'yellow': '#eab308',
+        'purple': '#a855f7',
+        'orange': '#f97316',
+        'pink': '#ec4899'
+    }
+
+    // Helper функция для преобразования привычки в данные формы
+    const habitToFormData = (habit: THabit) => ({
+        title: habit.title,
+        description: habit.description || '',
+        icon: iconMapping[habit.icon as keyof typeof iconMapping] || 'focus',
+        color: colorMapping[habit.color as keyof typeof colorMapping] || 'blue',
+        frequency: habit.frequency,
+        targetValue: habit.targetValue,
+        unit: habit.unit || '',
+        reminderTime: habit.reminderTime || '',
+        startDate: habit.startDate ? new Date(habit.startDate).toISOString().split('T')[0] : '',
+        endDate: habit.endDate ? new Date(habit.endDate).toISOString().split('T')[0] : '',
+        isActive: habit.isActive,
+        isArchived: habit.isArchived
+    })
+
+    // Helper функция для преобразования данных формы в данные привычки
+    const formDataToHabit = (data: any) => ({
+        ...data,
+        icon: reverseIconMapping[data.icon as keyof typeof reverseIconMapping] || '🎯',
+        color: reverseColorMapping[data.color as keyof typeof reverseColorMapping] || '#3b82f6'
+    })
+
+
+    // Автоматическое заполнение формы данными при редактировании
+    useEffect(() => {
+        if (mode === 'edit' && editingHabit) {
+            reset(habitToFormData(editingHabit))
+        }
+    }, [mode, editingHabit, reset])
+
+    const onSubmit = async (data: Partial<THabit>) => {
+        try {
+            const processedData = formDataToHabit(data)
+
+            if (mode === 'edit' && editingHabit) {
+                await updateHabit(editingHabit.id, processedData)
+                router.push(`/habits/${editingHabit.id}`)
+            } else {
+                const newHabit = await createHabit(processedData)
+                router.push(`/habits/${newHabit.id}`)
+            }
+            reset()
+        } catch (error) {
+            console.error('Ошибка при сохранении привычки:', error)
+        }
     }
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className='border p-4 rounded-lg shadow-lg'>
             <h1 className='text-4xl font-bold ml-2 text-center border-b border-gray-300 pb-2'>Habit Rabbit</h1>
-            <div className='flex justify-between items-end'>
-                <h1 className='text-2xl font-bold ml-2'>Редактирование привычки</h1>
-                <FaTimes size={30} onClick={() => setIsEdit(false)} className='cursor-pointer' />
+            <div className='flex justify-between items-end my-4'>
+                <h1 className='text-2xl font-bold ml-2'>
+                    {mode === 'edit' ? 'Редактирование привычки' : 'Создание привычки'}
+                </h1>
+                <FaTimes
+                    size={30}
+                    onClick={() => router.back()}
+                    className='cursor-pointer'
+                />
             </div>
 
             <div className='grid md:grid-cols-2 gap-2'>
@@ -87,6 +198,7 @@ export default function HabitsForm({ setIsEdit }: { setIsEdit: (isEdit: boolean)
                             { value: 'clean', label: '🧹 Уборка' },
                             { value: 'cook', label: '🍳 Готовка' },
                         ]}
+                        {...register('icon')}
                     />
                 </div>
 
@@ -106,6 +218,7 @@ export default function HabitsForm({ setIsEdit }: { setIsEdit: (isEdit: boolean)
                         { value: 'orange', label: 'Оранжевый' },
                         { value: 'pink', label: 'Розовый' },
                     ]}
+                    {...register('color')}
                 />
 
                 <MySelect label='Частота' placeholder='Частота'
@@ -148,7 +261,13 @@ export default function HabitsForm({ setIsEdit }: { setIsEdit: (isEdit: boolean)
                 />
 
 
-                <MyInput label='Время напоминания' type='time' placeholder='Время напоминания' {...register('reminderTime')} />
+                <MyInput 
+                    label='Время напоминания' 
+                    type='time' 
+                    placeholder='HH:MM' 
+                    {...register('reminderTime')} 
+                />
+
                 <MyInput label='Дата начала' type='date' placeholder='Дата начала' {...register('startDate', {
                     required: {
                         value: true,
@@ -171,8 +290,16 @@ export default function HabitsForm({ setIsEdit }: { setIsEdit: (isEdit: boolean)
             </div>
 
             <div className='flex justify-center items-center my-4 gap-4'>
-                <MyButton type='submit' className='py-2 bg-blue-500 text-white'>Сохранить</MyButton>
-                <MyButton type='button' className='py-2 bg-red-500 text-white' onClick={() => setIsEdit(false)}>Отмена</MyButton>
+                <MyButton type='submit' className='py-2 bg-blue-500 text-white'>
+                    {mode === 'edit' ? 'Обновить' : 'Создать'}
+                </MyButton>
+                <MyButton
+                    type='button'
+                    className='py-2 bg-red-500 text-white'
+                    onClick={() => router.back()}
+                >
+                    Отмена
+                </MyButton>
             </div>
         </form>
     )

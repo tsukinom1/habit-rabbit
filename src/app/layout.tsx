@@ -4,7 +4,7 @@ import ClientLayout from "@/components/layout/ClientLayout";
 
 
 export const metadata: Metadata = {
-  title: "Name",
+  title: "Habit Rabbit",
   description: "The best tracker of habits with little rabbit",
 };
 

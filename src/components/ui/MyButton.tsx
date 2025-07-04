@@ -4,15 +4,22 @@ interface MyButtonProps {
     type?: "button" | "submit" | "reset"
     children: React.ReactNode
     className?: string
-    onClick?: () => void
+    title?: string
+    onClick?: (e?: React.MouseEvent) => void
     onMouseEnter?: () => void
     onMouseLeave?: () => void
 }
 
-export default function MyButton({ children, className, onClick, type, onMouseEnter, onMouseLeave }: MyButtonProps) {
+export default function MyButton({ children, className, onClick, type = "button", onMouseEnter, onMouseLeave, title }: MyButtonProps) {
     return (
-        <button type={type} className={`py-1 px-2 md:py-2 md:px-4 rounded-lg border border-gray-300  ${className}`}
-            onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+        <button 
+            type={type} 
+            className={`py-1 px-2 md:py-2 md:px-4 rounded-lg border border-gray-300  ${className}`}
+            title={title}
+            onClick={(e) => onClick?.(e)} 
+            onMouseEnter={onMouseEnter} 
+            onMouseLeave={onMouseLeave}
+        >
             {children}
         </button>
     )
