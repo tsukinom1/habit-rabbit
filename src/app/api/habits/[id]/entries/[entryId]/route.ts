@@ -36,7 +36,7 @@ async function validateEntryOwnership(entryId: string, habitId: string, profileI
 // PUT /api/habits/[id]/entries/[entryId] - обновление записи
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string; entryId: string } }
+    { params }: { params: Promise<{ id: string; entryId: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -44,13 +44,15 @@ export async function PUT(
             return NextResponse.json({ error: "Не авторизован" }, { status: 401 })
         }
 
+        const resolvedParams = await params
+
         const profile = await getUserProfile(session.user.id)
         if (!profile) {
             return NextResponse.json({ error: "Профиль не найден" }, { status: 404 })
         }
 
         // Проверяем права доступа к записи
-        const entry = await validateEntryOwnership(params.entryId, params.id, profile.id)
+        const entry = await validateEntryOwnership(resolvedParams.entryId, resolvedParams.id, profile.id)
         if (!entry) {
             return NextResponse.json({ error: "Запись не найдена или нет доступа" }, { status: 404 })
         }
@@ -84,9 +86,9 @@ export async function PUT(
         if (allowedFields.date) {
             const existingEntry = await prisma.habitEntry.findFirst({
                 where: {
-                    habitId: params.id,
+                    habitId: resolvedParams.id,
                     date: allowedFields.date,
-                    id: { not: params.entryId } // Исключаем текущую запись
+                    id: { not: resolvedParams.entryId } // Исключаем текущую запись
                 }
             })
 
@@ -99,7 +101,7 @@ export async function PUT(
 
         // Получаем данные привычки для расчета прогресса
         const habit = await prisma.habit.findUnique({
-            where: { id: params.id },
+            where: { id: resolvedParams.id },
             select: { targetValue: true, frequency: true, currentStreak: true, longestStreak: true }
         })
 
@@ -121,7 +123,7 @@ export async function PUT(
         // Обновляем запись и пересчитываем streak если нужно
         const result = await prisma.$transaction(async (tx) => {
             const updatedEntry = await tx.habitEntry.update({
-                where: { id: params.entryId },
+                where: { id: resolvedParams.entryId },
                 data: {
                     ...allowedFields,
                     updatedAt: new Date()
@@ -144,7 +146,7 @@ export async function PUT(
             // Пересчитываем streak если статус выполнения изменился
             if (needStreakRecalculation) {
                 const allEntries = await tx.habitEntry.findMany({
-                    where: { habitId: params.id },
+                    where: { habitId: resolvedParams.id },
                     orderBy: { date: 'desc' }
                 })
 
@@ -152,7 +154,7 @@ export async function PUT(
                 const newLongestStreak = calculateLongestStreak(allEntries, habit?.frequency || 'DAILY')
 
                 await tx.habit.update({
-                    where: { id: params.id },
+                    where: { id: resolvedParams.id },
                     data: {
                         currentStreak: newCurrentStreak,
                         longestStreak: Math.max(newLongestStreak, habit?.longestStreak || 0)
@@ -191,7 +193,7 @@ export async function PUT(
 // DELETE /api/habits/[id]/entries/[entryId] - удаление записи
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string; entryId: string } }
+    { params }: { params: Promise<{ id: string; entryId: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -199,32 +201,34 @@ export async function DELETE(
             return NextResponse.json({ error: "Не авторизован" }, { status: 401 })
         }
 
+        const resolvedParams = await params
+
         const profile = await getUserProfile(session.user.id)
         if (!profile) {
             return NextResponse.json({ error: "Профиль не найден" }, { status: 404 })
         }
 
         // Проверяем права доступа к записи
-        const entry = await validateEntryOwnership(params.entryId, params.id, profile.id)
+        const entry = await validateEntryOwnership(resolvedParams.entryId, resolvedParams.id, profile.id)
         if (!entry) {
             return NextResponse.json({ error: "Запись не найдена или нет доступа" }, { status: 404 })
         }
 
         // Получаем данные привычки для пересчета streak
         const habit = await prisma.habit.findUnique({
-            where: { id: params.id },
+            where: { id: resolvedParams.id },
             select: { frequency: true, currentStreak: true, longestStreak: true }
         })
 
         // Удаляем запись в транзакции
         await prisma.$transaction(async (tx) => {
             await tx.habitEntry.delete({
-                where: { id: params.entryId }
+                where: { id: resolvedParams.entryId }
             })
 
             // Получаем оставшиеся записи для пересчета streak
             const remainingEntries = await tx.habitEntry.findMany({
-                where: { habitId: params.id },
+                where: { habitId: resolvedParams.id },
                 orderBy: { date: 'desc' }
             })
 
@@ -234,7 +238,7 @@ export async function DELETE(
 
             // Обновляем статистику привычки
             await tx.habit.update({
-                where: { id: params.id },
+                where: { id: resolvedParams.id },
                 data: {
                     totalEntries: { decrement: 1 },
                     currentStreak: newCurrentStreak,
@@ -261,7 +265,7 @@ export async function DELETE(
 // GET /api/habits/[id]/entries/[entryId] - получение конкретной записи
 export async function GET(
     request: Request,
-    { params }: { params: { id: string; entryId: string } }
+    { params }: { params: Promise<{ id: string; entryId: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -269,13 +273,15 @@ export async function GET(
             return NextResponse.json({ error: "Не авторизован" }, { status: 401 })
         }
 
+        const resolvedParams = await params
+
         const profile = await getUserProfile(session.user.id)
         if (!profile) {
             return NextResponse.json({ error: "Профиль не найден" }, { status: 404 })
         }
 
         // Получаем запись с проверкой прав доступа
-        const entry = await validateEntryOwnership(params.entryId, params.id, profile.id)
+        const entry = await validateEntryOwnership(resolvedParams.entryId, resolvedParams.id, profile.id)
         if (!entry) {
             return NextResponse.json({ error: "Запись не найдена или нет доступа" }, { status: 404 })
         }
